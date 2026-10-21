@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>パスワード エントロピー 計算機</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col items-center justify-start py-10 px-4">
+  <div class="w-full max-w-xl">
+    <h1 class="text-2xl font-bold text-center mb-1">パスワード エントロピー 計算機</h1>
+    <p class="text-gray-400 text-sm text-center mb-6">Password Entropy Meter</p>
+
+    <div class="bg-gray-800 rounded-2xl p-6 shadow-lg">
+      <!-- Password input -->
+      <div class="mb-5">
+        <label for="password-input" class="block text-sm font-medium text-gray-300 mb-2">パスワードを入力</label>
+        <div class="relative">
+          <input
+            id="password-input"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="パスワードを入力してください..."
+            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 pr-12 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 text-base font-mono"
+          />
+          <button
+            id="toggle-visibility"
+            type="button"
+            aria-label="パスワードの表示/非表示を切り替え"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors"
+          >
+            <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            <svg id="eye-off-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+            </svg>
+          </button>
+        </div>
+        <p class="text-xs text-gray-500 mt-2">🔒 パスワードはこのブラウザ内でのみ処理され、外部に送信・保存されません</p>
+      </div>
+
+      <!-- Strength bar -->
+      <div class="mb-5">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-sm font-medium text-gray-300">強度</span>
+          <span id="strength-label" class="text-sm font-bold text-gray-500">—</span>
+        </div>
+        <div class="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+          <div id="strength-bar" class="h-3 rounded-full transition-all duration-300 bg-gray-600" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Stats grid -->
+      <div class="grid grid-cols-2 gap-3 mb-5">
+        <div class="bg-gray-700 rounded-xl p-3">
+          <div class="text-xs text-gray-400 mb-1">文字数</div>
+          <div id="stat-length" class="text-xl font-bold text-gray-100">0</div>
+        </div>
+        <div class="bg-gray-700 rounded-xl p-3">
+          <div class="text-xs text-gray-400 mb-1">文字プール</div>
+          <div id="stat-pool" class="text-xl font-bold text-gray-100">0</div>
+        </div>
+        <div class="bg-gray-700 rounded-xl p-3">
+          <div class="text-xs text-gray-400 mb-1">エントロピー</div>
+          <div id="stat-entropy" class="text-xl font-bold text-gray-100">0 <span class="text-sm font-normal text-gray-400">bits</span></div>
+        </div>
+        <div class="bg-gray-700 rounded-xl p-3">
+          <div class="text-xs text-gray-400 mb-1">解読推定時間</div>
+          <div id="stat-crack" class="text-xl font-bold text-gray-100">—</div>
+        </div>
+      </div>
+
+      <!-- Character classes detected -->
+      <div class="mb-5">
+        <div class="text-sm font-medium text-gray-300 mb-2">検出された文字種</div>
+        <div class="flex flex-wrap gap-2">
+          <span id="badge-lower" class="px-3 py-1 rounded-full text-xs font-medium bg-gray-700 text-gray-400 transition-all duration-200">小文字 (a-z)</span>
+          <span id="badge-upper" class="px-3 py-1 rounded-full text-xs font-medium bg-gray-700 text-gray-400 transition-all duration-200">大文字 (A-Z)</span>
+          <span id="badge-digits" class="px-3 py-1 rounded-full text-xs font-medium bg-gray-700 text-gray-400 transition-all duration-200">数字 (0-9)</span>
+          <span id="badge-symbols" class="px-3 py-1 rounded-full text-xs font-medium bg-gray-700 text-gray-400 transition-all duration-200">記号</span>
+        </div>
+      </div>
+
+      <!-- Suggestions -->
+      <div id="suggestions-section" class="hidden">
+        <div class="text-sm font-medium text-gray-300 mb-2">改善の提案</div>
+        <ul id="suggestions-list" class="space-y-1"></ul>
+      </div>
+    </div>
+
+    <!-- Info box -->
+    <div class="mt-4 bg-gray-800 rounded-xl p-4 text-xs text-gray-400">
+      <p class="font-medium text-gray-300 mb-1">計算方法</p>
+      <p>エントロピー = log₂(文字プールサイズ<sup>文字数</sup>) ビット</p>
+      <p class="mt-1">解読速度の仮定: 10億回/秒 (10⁹ guesses/sec)</p>
+    </div>
+  </div>
+
+  <script>
+    const input = document.getElementById('password-input');
+    const toggleBtn = document.getElementById('toggle-visibility');
+    const eyeIcon = document.getElementById('eye-icon');
+    const eyeOffIcon = document.getElementById('eye-off-icon');
+
+    toggleBtn.addEventListener('click', () => {
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      eyeIcon.classList.toggle('hidden', isPassword);
+      eyeOffIcon.classList.toggle('hidden', !isPassword);
+    });
+
+    function calcEntropy(password) {
+      const hasLower = /[a-z]/.test(password);
+      const hasUpper = /[A-Z]/.test(password);
+      const hasDigits = /[0-9]/.test(password);
+      const hasSymbols = /[^a-zA-Z0-9]/.test(password);
+
+      let pool = 0;
+      if (hasLower) pool += 26;
+      if (hasUpper) pool += 26;
+      if (hasDigits) pool += 10;
+      if (hasSymbols) pool += 32;
+
+      const length = password.length;
+      const entropy = length > 0 && pool > 0 ? length * Math.log2(pool) : 0;
+
+      return { hasLower, hasUpper, hasDigits, hasSymbols, pool, length, entropy };
+    }
+
+    function strengthInfo(entropy) {
+      if (entropy === 0) return { label: '—', color: 'bg-gray-600', textColor: 'text-gray-500', pct: 0 };
+      if (entropy < 28) return { label: 'Very Weak / 非常に弱い', color: 'bg-red-600', textColor: 'text-red-400', pct: 8 };
+      if (entropy < 36) return { label: 'Weak / 弱い', color: 'bg-orange-500', textColor: 'text-orange-400', pct: 22 };
+      if (entropy < 60) return { label: 'Fair / 普通', color: 'bg-yellow-500', textColor: 'text-yellow-400', pct: 45 };
+      if (entropy < 128) return { label: 'Strong / 強い', color: 'bg-green-500', textColor: 'text-green-400', pct: 75 };
+      return { label: 'Very Strong / 非常に強い', color: 'bg-blue-500', textColor: 'text-blue-400', pct: 100 };
+    }
+
+    function crackTime(entropy) {
+      if (entropy <= 0) return '—';
+      // combinations = 2^entropy, guesses per second = 1e9
+      // seconds = 2^entropy / 1e9
+      const seconds = Math.pow(2, Math.min(entropy, 300)) / 1e9;
+      if (seconds < 1) return '瞬時';
+      if (seconds < 60) return `約${Math.round(seconds)}秒`;
+      if (seconds < 3600) return `約${Math.round(seconds / 60)}分`;
+      if (seconds < 86400) return `約${Math.round(seconds / 3600)}時間`;
+      if (seconds < 86400 * 30) return `約${Math.round(seconds / 86400)}日`;
+      if (seconds < 86400 * 365) return `約${Math.round(seconds / (86400 * 30))}ヶ月`;
+      if (seconds < 86400 * 365 * 1000) return `約${Math.round(seconds / (86400 * 365))}年`;
+      if (seconds < 86400 * 365 * 1e6) return `約${Math.round(seconds / (86400 * 365 * 1000))}千年`;
+      if (seconds < 86400 * 365 * 1e9) return `約${Math.round(seconds / (86400 * 365 * 1e6))}百万年`;
+      return '宇宙年齢を超える';
+    }
+
+    function getSuggestions(result) {
+      const suggestions = [];
+      if (result.length === 0) return suggestions;
+      if (!result.hasUpper) suggestions.push('大文字を追加する (A-Z)');
+      if (!result.hasLower) suggestions.push('小文字を追加する (a-z)');
+      if (!result.hasDigits) suggestions.push('数字を追加する (0-9)');
+      if (!result.hasSymbols) suggestions.push('記号を追加する (!@#$%...)');
+      if (result.length < 8) suggestions.push('文字数を8文字以上にする');
+      else if (result.length < 12) suggestions.push('文字数を12文字以上にすると更に安全');
+      else if (result.length < 16 && result.entropy < 60) suggestions.push('文字数を16文字以上にすることを推奨');
+      return suggestions;
+    }
+
+    function activateBadge(el, color) {
+      el.className = `px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${color}`;
+    }
+    function deactivateBadge(el) {
+      el.className = 'px-3 py-1 rounded-full text-xs font-medium bg-gray-700 text-gray-400 transition-all duration-200';
+    }
+
+    input.addEventListener('input', () => {
+      const password = input.value;
+      const result = calcEntropy(password);
+      const strength = strengthInfo(result.entropy);
+
+      // Update strength bar
+      const bar = document.getElementById('strength-bar');
+      bar.className = `h-3 rounded-full transition-all duration-300 ${strength.color}`;
+      bar.style.width = strength.pct + '%';
+
+      // Strength label
+      const sl = document.getElementById('strength-label');
+      sl.textContent = strength.label;
+      sl.className = `text-sm font-bold ${strength.textColor}`;
+
+      // Stats
+      document.getElementById('stat-length').textContent = result.length;
+      document.getElementById('stat-pool').textContent = result.pool;
+      document.getElementById('stat-entropy').innerHTML = result.entropy > 0
+        ? `${result.entropy.toFixed(1)} <span class="text-sm font-normal text-gray-400">bits</span>`
+        : '0 <span class="text-sm font-normal text-gray-400">bits</span>';
+      document.getElementById('stat-crack').textContent = crackTime(result.entropy);
+
+      // Badges
+      result.hasLower ? activateBadge(document.getElementById('badge-lower'), 'bg-blue-900 text-blue-300') : deactivateBadge(document.getElementById('badge-lower'));
+      result.hasUpper ? activateBadge(document.getElementById('badge-upper'), 'bg-purple-900 text-purple-300') : deactivateBadge(document.getElementById('badge-upper'));
+      result.hasDigits ? activateBadge(document.getElementById('badge-digits'), 'bg-green-900 text-green-300') : deactivateBadge(document.getElementById('badge-digits'));
+      result.hasSymbols ? activateBadge(document.getElementById('badge-symbols'), 'bg-orange-900 text-orange-300') : deactivateBadge(document.getElementById('badge-symbols'));
+
+      // Suggestions
+      const suggs = getSuggestions(result);
+      const sec = document.getElementById('suggestions-section');
+      const list = document.getElementById('suggestions-list');
+      if (suggs.length > 0) {
+        sec.classList.remove('hidden');
+        list.innerHTML = '';
+        suggs.forEach(s => {
+          const li = document.createElement('li');
+          li.className = 'flex items-start gap-2 text-sm text-yellow-300';
+          li.innerHTML = '<span class="mt-0.5 text-yellow-500">⚠</span><span></span>';
+          li.querySelector('span:last-child').textContent = s;
+          list.appendChild(li);
+        });
+      } else {
+        sec.classList.add('hidden');
+      }
+    });
+  </script>
+</body>
+</html>
